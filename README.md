@@ -105,7 +105,7 @@ So, single-core performance of fftw seems to be good, but Intels mkl_fft runs be
 
 ## TODO - Install with openmp
 
-Python multithreaded benchmarks are not convincing. Installing with openmp might speed up multi-threaded calculation in python. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
+Pyfftw multithreaded benchmarks on are not convincing. Installing with openmp might speed up multi-threaded calculation in python. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
 
 ```console
 $ brew install libomp
