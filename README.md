@@ -30,7 +30,7 @@ $ tests/bench -onthreads=4 -opatient -s c512x512
 Problem: c512x512, setup: 18.84 s, time: 349.69 us, ``mflops'': 67468.697
 ```
 
-Compilation for long double is optional, but it appears that pyfftw by default needs it to operate flawlessly, so we install it. No optimizations here, because we wont be needing it anyway:
+Compilation for long double is optional, but it appears that pyfftw by default needs it to operate flawlessly, so we install it. No optimizations here because we wont be needing it anyway:
 
 ```console
 $ ./configure --enable-threads --enable-armv8-cntvct-el0 --enable-long-double
