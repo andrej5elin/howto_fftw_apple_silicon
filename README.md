@@ -5,14 +5,23 @@ Until things get sorted out, here are the instructions on installing pyfftw and 
 
 ## Installing FFTW 
 
-Download FFTW source code and the fftw_3_3_9_configure_diff.txt file from the repository and configure:
+Download FFTW source code and the fftw-3-3-9-configure-diff.txt file from the repository and configure:
 
-$ 
-$ ./configure --enable-threads --enable-neon --enable-float
-$ make
-$ sudo make install
 
-To compile for double precision, you have to apply a patch to 
+```console
+patch configure fftw-3-3-9-configure-diff.txt
+./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0 --enable-float
+make
+sudo make install
+./configure --enable-threads --enable-armv8-cntvct-el0 --enable-neon 
+make
+sudo make install
+./configure --enable-threads --enable-armv8-cntvct-el0 --enable-long-double
+make
+sudo make install
+```
+
+
 
 
 
