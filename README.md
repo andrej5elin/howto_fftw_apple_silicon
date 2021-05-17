@@ -47,7 +47,7 @@ Download pyfftw source and install with
 $ CFLAGS="-Wno-implicit-function-declaration" python setup.py install
 ```
 
-The setup.py script tries to detect how we compiled fftw library by compiling some auto-generated c program using some specific function calls. On apple, gcc is linked to clang, which prohibits compiling without function declarations. The compiler option above allows it to find the libraries and appears to compile into a working pyfftw package. On mini-forge python distribution with python 3.9 running natively:
+Without the compiler option, the setup.py script tries to detect how we compiled fftw library by compiling some auto-generated c program and linking with a proper library and fails because of the default -Wimplicit-function-declaration option. On apple, gcc is linked to clang, which prohibits compiling without function declarations. There may be some missing header files resulting in the problem, but the above compiler flags seems to solve the problem. I did not dig further into this. The compiler option above allows it to find the libraries and appears to compile into a working pyfftw package. On mini-forge python distribution with python 3.9 running natively:
 
 ```console
 $ ipython
@@ -63,7 +63,9 @@ $ ipython
 539 µs ± 53.1 µs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 ```
 
-## TODO
+Except for a somewhat slower computation speed, compared to the tests/bench results, it appears to be working well.
+
+## TODO - Install with openmp
 
 Python multithreaded benchmarks are not convincing. Installing with openmp might speed up multi-threaded calculation in python. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
 
