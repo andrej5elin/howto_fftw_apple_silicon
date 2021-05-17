@@ -12,7 +12,7 @@ $ patch configure fftw-3-3-9-configure-diff.txt
 $ ./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0 --enable-float
 $ make
 $ sudo make install
-$ msake clean
+$ make clean
 $ ./configure --enable-threads --enable-armv8-cntvct-el0 --enable-neon 
 $ make
 $ sudo make install
