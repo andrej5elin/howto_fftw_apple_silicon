@@ -51,7 +51,7 @@ Without the compiler option, the setup.py script tries to detect how we compiled
 
 ## Benchmarks
 
-On miniforge python distribution with python 3.9 running natively:
+On miniforge python distribution with python 3.9 running natively on Mac Mini (2020 M1 8GB):
 
 ```console
 $ ipython
@@ -73,7 +73,7 @@ $ ipython
 315 µs ± 974 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each)
 ```
 
-Except for a somewhat slower computation speed, compared to the tests/bench results, it appears to be working OK. For comparison, anaconda running python 3.8 over roseta and with intel's mkl_fft I get
+Except for a somewhat slower computation speed, compared to the tests/bench results, it appears to be working OK. For comparison, anaconda running python 3.8 over roseta on Mac Mini (2020 M1 8GB) with intel's mkl_fft I get
 
 ```console
 $ ipython
