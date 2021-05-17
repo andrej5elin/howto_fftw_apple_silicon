@@ -1,6 +1,6 @@
 # howto_fftw_apple_silicon
 
-Note that it is possible to install fftw with brew. But, if you want to get best performance, fftw has to be compiled with SIMD instruction sets.
+Note that it is possible to install fftw with brew. But, if you want to get best performance, fftw has to be compiled with SIMD instruction sets. 
 Here is a how to install pyfftw and fftw on apple silicon computers (M1).
 
 ## Installing FFTW 
