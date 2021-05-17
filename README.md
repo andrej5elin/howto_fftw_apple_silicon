@@ -1,14 +1,14 @@
 # howto_fftw_apple_silicon
 
-Note that it is possible to install fftw with brew, but the package there is not yet properly compiled.
-Until things get sorted out, here are the instructions on installing pyfftw and fftw on apple silicon computers.
+Note that it is possible to install fftw with brew. But, if you want to get best performance, fftw has to be compiled with SIMD instruction sets.
+Here is a how to install pyfftw and fftw on apple silicon computers (M1).
 
 ## Installing FFTW 
 
-Download FFTW source code and move the fftw-3-3-9-configure-diff.txt file from the repository to fftw source directory and configure:
+Download FFTW source code (version 3.3.9) and move the fftw-3-3-9-configure-diff.txt file from this repository to fftw source directory and configure:
 
 ```console
-$ patch -R configure fftw-3-3-9-configure-diff.txt
+$ patch configure fftw-3-3-9-configure-diff.txt
 $ ./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0 --enable-float
 $ make
 $ sudo make install
@@ -19,7 +19,7 @@ $ sudo make install
 $ make clean
 ```
 
-The patch file is needed so that we can compile with neon for double precision. The enable-armv8-cntvct-el0 allows fftw to use timers, which appear to be working OK because planning with FFTW_PATIENT does improve the calculation speed compared to FFTW_MEASURE. Threading appears to be working OK. On Mac Mini (2020 M1) I get:
+The patch file is needed so that we can compile with neon for double precision. The enable-armv8-cntvct-el0 allows fftw to use timers, which appear to be working OK because planning with FFTW_PATIENT does improve the calculation speed compared to FFTW_MEASURE. Threading appears to be working OK. On Mac Mini (2020 M1 8GB) I get:
 
 ```console
 $ tests/bench -s c512x512
