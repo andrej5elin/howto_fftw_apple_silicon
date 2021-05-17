@@ -83,23 +83,23 @@ $ ipython
 >>> import mkl_fft, mkl
 >>> import numpy as np
 >>> a = np.random.randn(512,512) + 1j #complex128 data
->>> mkl.set_num_threads(4) #defaults to 8, better to set to 4 because we only have 4 high performance threads.
+>>> mkl.set_num_threads(1) #defaults to 8, better to use max 4 threads because we only have 4 high performance threads.
 8
->>> timeit mkl_fft.fft2(a) #multi-core
-365 µs ± 6.91 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
->>> mkl.set_num_threads(1)
-4
 >>> timeit mkl_fft.fft2(a) #single core
 1.8 ms ± 4.18 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
->>> a = np.asarray(a,"complex64")
 >>> mkl.set_num_threads(4)
 1
->>> timeit mkl_fft.fft2(a) #multi-core single precision
-222 µs ± 34.4 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+>>> timeit mkl_fft.fft2(a) #multi-core
+365 µs ± 6.91 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+>>> a = np.asarray(a,"complex64") # single precision
 >>> mkl.set_num_threads(1)
 4
 >>> timeit mkl_fft.fft2(a) #single core single precision
 665 µs ± 373 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+>>> mkl.set_num_threads(4)
+1
+>>> timeit mkl_fft.fft2(a) #multi-core single precision
+222 µs ± 34.4 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
 ```
 So, single-core performance of fftw seems to be good, but Intels mkl_fft runs better multi-threaded.
 
