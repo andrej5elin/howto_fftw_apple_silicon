@@ -19,6 +19,11 @@ $ sudo make install
 $ make clean
 ```
 
+For compiling tests (benchmarks):
+```console
+$ make check
+```
+
 The patch file is needed so that we can compile with neon for double precision. The enable-armv8-cntvct-el0 allows fftw to use timers, which appear to be working OK because planning with FFTW_PATIENT does improve the calculation speed compared to FFTW_MEASURE. Threading appears to be working OK. On Mac Mini (2020 M1 8GB) I get (double precision):
 
 ```console
