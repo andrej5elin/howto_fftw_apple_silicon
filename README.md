@@ -5,38 +5,53 @@ Here is a how to install pyfftw and fftw on apple silicon computers (M1).
 
 ## Installing FFTW 
 
-Download FFTW source code (version 3.3.9) and move the fftw-3-3-9-configure-diff.txt file from this repository to fftw source directory and configure:
+Download FFTW source code (version 3.3.10) and move the fftw-3-3-10-configure-diff.txt file from this repository to fftw source directory and configure:
 
 ```console
-$ patch configure fftw-3-3-9-configure-diff.txt
-$ ./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0 --enable-float
+$ patch configure fftw-3-3-10-configure-diff.txt
+$ ./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0
 $ make
 $ sudo make install
-$ make clean
-$ ./configure --enable-threads --enable-armv8-cntvct-el0 --enable-neon 
-$ make
-$ sudo make install
-$ make clean
 ```
 
 The patch file is needed so that we can compile with neon for double precision. The enable-armv8-cntvct-el0 allows fftw to use timers, which appear to be working OK because planning with FFTW_PATIENT does improve the calculation speed compared to FFTW_MEASURE. Threading appears to be working OK. On Mac Mini (2020 M1 8GB) I get (double precision):
 
 ```console
-$ tests/bench -s c512x512
-Problem: c512x512, setup: 299.56 ms, time: 1.13 ms, ``mflops'': 20906.478
+$ tests/bench c512x512
+Problem: c512x512, setup: 295.95 ms, time: 1.11 ms, ``mflops'': 21179.788
 $ tests/bench -onthreads=4 -s c512x512
-Problem: c512x512, setup: 322.40 ms, time: 462.38 us, ``mflops'': 51025.596
-$ tests/bench -onthreads=4 -opatient -s c512x512
-Problem: c512x512, setup: 18.84 s, time: 349.69 us, ``mflops'': 67468.697
+Problem: c512x512, setup: 322.60 ms, time: 446.69 us, ``mflops'': 52817.596
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 17.97 s, time: 353.28 us, ``mflops'': 66782.372
+```
+
+Now we compile/install for single precision
+
+```console
+$ ./configure --enable-threads --enable-neon --enable-armv8-cntvct-el0 --enable-float
+$ make clean
+$ make
+$ sudo make install
+```
+
+Computation is now faster, I get
+
+```console
+$ tests/bench c512x512
+Problem: c512x512, setup: 265.03 ms, time: 697.94 us, ``mflops'': 33803.829
+$ tests/bench -onthreads=4 -s c512x512
+Problem: c512x512, setup: 289.50 ms, time: 282.66 us, ``mflops'': 83468.736
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 16.35 s, time: 210.22 us, ``mflops'': 112230.52
 ```
 
 Compilation for long double is optional, but it appears that pyfftw by default needs it to operate flawlessly, so we install it. No optimizations here because we wont be needing it anyway:
 
 ```console
 $ ./configure --enable-threads --enable-armv8-cntvct-el0 --enable-long-double
+$ make clean
 $ make
 $ sudo make install
-$ make clean
 ```
 
 ## Installing pyFFTW
@@ -51,7 +66,7 @@ Without the compiler option, the setup.py script tries to detect how we compiled
 
 ## Benchmarks
 
-On miniforge python distribution with python 3.9 running natively on Mac Mini (2020 M1 8GB):
+On miniconda python distribution with python 3.10 running natively on Mac Mini (2020 M1 8GB):
 
 ```console
 $ ipython
@@ -103,18 +118,36 @@ $ ipython
 ```
 So, single-core performance of fftw seems to be good, but Intels mkl_fft runs better multi-threaded.
 
-## TODO - Install with openmp
+## Install with openmp
 
 Pyfftw multithreaded benchmarks on are not convincing. Installing with openmp might speed up multi-threaded calculation in python. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
 
 ```console
 $ brew install libomp
+$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-armv8-cntvct-el0 --enable-long-double
+$ make clean
+$ make
+$ sudo make install
+$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 
+$ make clean
+$ make
+$ sudo make install
 $ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-float
 $ make clean
 $ make
 $ sudo make install
 ```
-Above appears to be compiling and installing correctly, but I could not figure out how to convince pyfftw to use openmp instead of pthreads.
+Above appears to be compiling and installing correctly. We now get for single precision speed tests
+
+```console
+$ tests/bench c512x512
+Problem: c512x512, setup: 264.07 ms, time: 738.38 us, ``mflops'': 31952.544
+$ tests/bench -onthreads=4 -s c512x512
+Problem: c512x512, setup: 293.12 ms, time: 223.69 us, ``mflops'': 105472.86
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 17.07 s, time: 161.14 us, ``mflops'': 146412.24
+```
+Therefore, openmp does improve the computation speed of multithreaded runs. Installing pyfftw 0.13 also works. The setup script finds the openmp version of FFTW and installs it. We get
 
 
 
