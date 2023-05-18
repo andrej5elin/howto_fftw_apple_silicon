@@ -107,6 +107,17 @@ On miniconda python distribution with python 3.10 running natively on Mac Mini (
 $ ipython
 ```
 
+First, I set the OMP_NUM_THREADS environment variable, otherwise pyfftw takes 8 cores for planning. We do not want our code to be running on
+efficiency cores. Setting this variable to the number of performance cores of M1 does the trick. There may be some other ways to force pyfftw to 
+work properly, but for now, I settle with:
+
+```python
+>>> import os
+>>> os.environ["OMP_NUM_THREADS"] = "4"
+```
+
+It is important that the enviroment variable is set prior to importing pyfftw. Now we can do benchamerks
+
 ```python
 >>> import pyfftw
 >>> import numpy as np
