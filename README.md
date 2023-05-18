@@ -54,6 +54,39 @@ $ make
 $ sudo make install
 ```
 
+## Installing FFTW with openmp
+
+Multithreaded benchmarks are not fully convincing. Installing with openmp speeds up multi-threaded calculation. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
+
+```console
+$ brew install libomp
+$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-armv8-cntvct-el0 --enable-long-double
+$ make clean
+$ make
+$ sudo make install
+$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 
+$ make clean
+$ make
+$ sudo make install
+$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-float
+$ make clean
+$ make
+$ sudo make install
+```
+
+We now get for single precision speed tests
+
+```console
+$ tests/bench c512x512
+Problem: c512x512, setup: 264.07 ms, time: 738.38 us, ``mflops'': 31952.544
+$ tests/bench -onthreads=4 c512x512
+Problem: c512x512, setup: 293.12 ms, time: 223.69 us, ``mflops'': 105472.86
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 17.07 s, time: 161.14 us, ``mflops'': 146412.24
+```
+Therefore, openmp does improve the computation speed of multithreaded runs. We get a noticable improvement; 160 us versus 210 us for patient planning.
+
+
 ## Installing pyFFTW
 
 Download pyfftw source and install with
@@ -63,6 +96,8 @@ $ CFLAGS="-Wno-implicit-function-declaration" python setup.py install
 ```
 
 Without the compiler option, the setup.py script tries to detect how we compiled fftw library by compiling some auto-generated c program and linking with a proper library. This fails because of the default -Wimplicit-function-declaration compiler option. On apple, gcc is linked to clang, which prohibits compiling without function declarations. There may be some missing header files resulting in the problem, but the above compiler option seems to solve the problem. I did not dig further into this.
+
+Note that in recent versions of pyfftw, the setup script discoveres whether we compiled with openmp or not. It should take the openmp version of the installed fftw library by default.
 
 ## Benchmarks
 
@@ -78,17 +113,17 @@ $ ipython
 >>> a = np.random.randn(512,512) + 1j #complex double precision data and transform
 >>> pyfftw.interfaces.cache.enable()
 >>> timeit pyfftw.interfaces.scipy_fft.fft2(a, planner_effort = "FFTW_PATIENT", workers = 1)
-1.24 ms ± 2.24 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+1.24 ms ± 2.59 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
 >>> timeit pyfftw.interfaces.scipy_fft.fft2(a,  planner_effort = "FFTW_PATIENT", workers = 4)
-578 µs ± 4.58 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+439 µs ± 10.8 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
 >>> a = np.asarray(a,"complex64") #complex single precision data and transform
 >>> timeit pyfftw.interfaces.scipy_fft.fft2(a, planner_effort = "FFTW_PATIENT", workers = 1)
-667 µs ± 892 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+669 µs ± 3.18 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
 >>> timeit pyfftw.interfaces.scipy_fft.fft2(a,  planner_effort = "FFTW_PATIENT", workers = 4)
-315 µs ± 974 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each)
+221 µs ± 15.4 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
 ```
 
-Except for a somewhat slower computation speed, compared to the tests/bench results, it appears to be working OK. For comparison, anaconda running python 3.8 over roseta on Mac Mini (2020 M1 8GB) with intel's mkl_fft I get
+Except for a somewhat slower computation speed (probably caused by python overhead), compared to the tests/bench results, it appears to be working OK. For comparison, anaconda running python 3.8 over roseta on Mac Mini (2020 M1 8GB) with intel's mkl_fft I get
 
 ```console
 $ ipython
@@ -116,42 +151,6 @@ $ ipython
 >>> timeit mkl_fft.fft2(a) #multi-core single precision
 222 µs ± 34.4 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
 ```
-So, single-core performance of fftw seems to be good, but Intels mkl_fft runs better multi-threaded.
-
-## Install with openmp
-
-Pyfftw multithreaded benchmarks on are not convincing. Installing with openmp might speed up multi-threaded calculation in python. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
-
-```console
-$ brew install libomp
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-armv8-cntvct-el0 --enable-long-double
-$ make clean
-$ make
-$ sudo make install
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 
-$ make clean
-$ make
-$ sudo make install
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-float
-$ make clean
-$ make
-$ sudo make install
-```
-Above appears to be compiling and installing correctly. We now get for single precision speed tests
-
-```console
-$ tests/bench c512x512
-Problem: c512x512, setup: 264.07 ms, time: 738.38 us, ``mflops'': 31952.544
-$ tests/bench -onthreads=4 -s c512x512
-Problem: c512x512, setup: 293.12 ms, time: 223.69 us, ``mflops'': 105472.86
-$ tests/bench -onthreads=4 -opatient c512x512
-Problem: c512x512, setup: 17.07 s, time: 161.14 us, ``mflops'': 146412.24
-```
-Therefore, openmp does improve the computation speed of multithreaded runs. Installing pyfftw 0.13 also works. The setup script finds the openmp version of FFTW and installs it. We get
-
-
-
-
 
 
 
