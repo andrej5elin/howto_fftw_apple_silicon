@@ -1,7 +1,7 @@
 # howto_fftw_apple_silicon
 
 Note that it is possible to install fftw with brew. But, if you want to get best performance, fftw has to be compiled with SIMD instruction sets. 
-Here is a how to install pyfftw and fftw on apple silicon computers (M1).
+Here is a how to install pyfftw and fftw on apple silicon computers (tested on M1 and M4 Pro).
 
 ## Installing FFTW 
 
@@ -34,7 +34,7 @@ $ make
 $ sudo make install
 ```
 
-Computation is now faster, I get
+Computation is now faster, I get (M1)
 
 ```console
 $ tests/bench c512x512
@@ -56,7 +56,7 @@ $ sudo make install
 
 ## Installing FFTW with openmp
 
-Multithreaded benchmarks are not fully convincing. Installing with openmp speeds up multi-threaded calculation. Compiling with apple's clang appears to be possible according to https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
+Installing with openmp speeds up multi-threaded calculation. Compiling with apple's clang is possbile, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
 
 ```console
 $ brew install libomp
@@ -74,18 +74,31 @@ $ make
 $ sudo make install
 ```
 
-We now get for single precision speed tests
+We now get for single precision speed tests on M1
 
 ```console
-$ tests/bench c512x512
-Problem: c512x512, setup: 264.07 ms, time: 738.38 us, ``mflops'': 31952.544
-$ tests/bench -onthreads=4 c512x512
-Problem: c512x512, setup: 293.12 ms, time: 223.69 us, ``mflops'': 105472.86
+$ tests/bench -onthreads=1 -opatient c512x512
+Problem: c512x512, setup: 3.66 s, time: 557.16 us, ``mflops'': 42345.321
 $ tests/bench -onthreads=4 -opatient c512x512
 Problem: c512x512, setup: 17.07 s, time: 161.14 us, ``mflops'': 146412.24
 ```
 Therefore, openmp does improve the computation speed of multithreaded runs. We get a noticable improvement; 160 us versus 210 us for patient planning.
 
+For the M4 Pro (14 core variant) on the other hand (and most likely any M Pro or Max variant) one needs to first set OMP_WAIT_POLICY=ACTIVE, which allows openmp to fully utilize all cores. On M4 pro I get for the single precision tests:
+
+```console
+$ export OMP_WAIT_POLICY=ACTIVE
+$ tests/bench -onthreads=1 -opatient c512x512
+Problem: c512x512, setup: 1.05 s, time: 385.47 us, ``mflops'': 61205.895
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 3.46 s, time: 111.27 us, ``mflops'': 212026.88
+$ tests/bench -onthreads=8 -opatient c512x512
+Problem: c512x512, setup: 3.92 s, time: 76.96 us, ``mflops'': 306557.6
+$ tests/bench -onthreads=10 -opatient c512x512
+Problem: c512x512, setup: 4.94 s, time: 73.88 us, ``mflops'': 319363.25
+```
+
+Single core performance of M4 is about 40% faster than M1 in these tests. The computation is about 3x faster when using four cores, both on M1 and on M4 Pro.
 
 ## Installing pyFFTW
 
