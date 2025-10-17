@@ -1,7 +1,8 @@
 # howto_fftw_apple_silicon
 
-Note that it is possible to install fftw with brew. But, if you want to get best performance, fftw has to be compiled with SIMD instruction sets. 
-Here is a how to install pyfftw and fftw on apple silicon computers (tested on M1 and M4 Pro).
+This is a how to install fftw and pyfftw on apple silicon computers. Note that it is possible to install fftw with brew. It is also posible to pip install pyfftw, but, if you want to get the best performance, fftw has to be compiled with SIMD instruction sets, which the packages shipped with brew and pip are not (as of today - October 2025)
+
+Here is how to install pyfftw and fftw on apple silicon computers (tested on M1 and M4 Pro) using pthreads and/or openmp as the threading library.
 
 ## Installing FFTW 
 
@@ -56,24 +57,27 @@ $ sudo make install
 
 ## Installing FFTW with openmp
 
-Installing with openmp speeds up multi-threaded calculation. Compiling with apple's clang is possbile, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
+Installing with openmp in should speeds up multi-threaded calculation (but there are ceveats on Pro and Max machines). Compiling with apple's clang is possbile, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ 
+
+I am using --enable-shared option because we need it for pyfftw later on. 
 
 ```console
 $ brew install libomp
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-armv8-cntvct-el0 --enable-long-double
+$ export CPPFLAGS="-I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp"
+$ export LDFLAGS="-L/opt/homebrew/opt/libomp/lib -lomp"
+$ ./configure --enable-openmp --enable-armv8-cntvct-el0 --enable-long-double --enable-shared
 $ make clean
 $ make
 $ sudo make install
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 
+$ ./configure --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-shared
 $ make clean
 $ make
 $ sudo make install
-$ ./configure CPPFLAGS="-Xpreprocessor -fopenmp" LDFLAGS="-lomp" --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-float
+$ ./configure --enable-openmp --enable-neon --enable-armv8-cntvct-el0 --enable-float --enable-shared
 $ make clean
 $ make
 $ sudo make install
 ```
-
 We now get for single precision speed tests on M1
 
 ```console
@@ -98,23 +102,62 @@ $ tests/bench -onthreads=10 -opatient c512x512
 Problem: c512x512, setup: 4.94 s, time: 73.88 us, ``mflops'': 319363.25
 ```
 
-Single core performance of M4 is about 40% faster than M1 in these tests. The computation is about 3x faster when using four cores, both on M1 and on M4 Pro.
+Single core performance of M4 is about 40% faster than M1 in these tests. The computation is about 3x faster when using four cores, both on M1 and on M4 Pro. Unfortunately, openmp does not play well using the default policy OMP_WAIT_POLICY=PASSIVE. Here, I notice a noticable performance decrease when using 4 cores, and a dramatic performance decrease when using 8 cores:
+
+```console
+$ export OMP_WAIT_POLICY=PASSIVE
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 5.43 s, time: 138.53 us, ``mflops'': 170307.85
+$ tests/bench -onthreads=8 -opatient c512x512
+Problem: c512x512, setup: 10.13 s, time: 163.28 us, ``mflops'': 144492.77
+```
+
+Likeley this is caused by different thread handling on the OS level in Pro macs. See [inside m4 chips cpu core management](https://eclecticlight.co/2024/12/05/inside-m4-chips-cpu-core-management/). My guess is that on the non-pro machines with a simplified core management (having only one cluster of performance cores) libomp handles it well, whereas on Pros with a complicated thread mobility it makes libomp inefficient with poor thread utilization. The workaraount to force the threads to stay active using OMP_WAIT_POLICY=ACTIVE in order to achieve good thread utilization is unfortunately not a valid option when using pyfftw. So, I recommend using pthreads instead of openmp if you want to use pyfftw in M Pro and M Max orocessosrs. I will neverhteles document how to compile pyfftw with openmp. Using pthreads instead of openmp you should see
+
+```console
+$ tests/bench -onthreads=4 -opatient c512x512
+Problem: c512x512, setup: 4.66 s, time: 136.15 us, ``mflops'': 173288.51
+$ tests/bench -onthreads=8 -opatient c512x512
+Problem: c512x512, setup: 6.12 s, time: 127.56 us, ``mflops'': 184952.16
+```
+
+So, not optimal, but at least we do not see a performance decrease when going from 4 to 8 cores. It is still a bummer we cannot achieve the full performance on M4 Pro without the OMP_WAIT_POLICY=ACTIVE and the pthreads 8-core results (127 us) are more than 50% slower than what the machine is capable of (77 us). Hopefully, the thread utilization issue will be resolved in future versions of openmp. 
+
 
 ## Installing pyFFTW
 
-Download pyfftw source and install with
+We first create and prepare a new environment using conda. I have tested this using python version 3.14.
 
 ```console
-$ CFLAGS="-Wno-implicit-function-declaration" python setup.py install
+$ conda create --name fftw3 python=3.14
+$ conda activate fftw3
+$ pip install numpy scipy cython
+```
+I use pip instead of conda install because numpy comes with libomp and we mess up the environment when installing our custom build pyfftw compiled with a different libomp shipped with brew. I did not find a good solution for this, so for demonstration purposes, we use pip, which gives us unoptimized scipy and numpy packages.
+
+Next, download and extract pyfftw (version 0.15.0), apply the patch and install
+
+```console
+$ patch setup.py pyfftw-0-15-0-setup-diff.txt
+$ ln -s /opt/homebrew/opt/libomp/lib/*.* /usr/local/lib/.
+$ ln -s /opt/homebrew/opt/libomp/include/*.* /usr/local/include/.
+```
+pyfftw tries to compile some test code to determine which fftw libraries are present. The patch replaces the linker option "-fopenmp" with "-lomp" and then it is possible to compile with opemp. I could not find a better solution, but symbolic linking homebrew-installed libomp allows pyfftw compile correctly. Now we can compile and install pyfftw
+
+```console
+$ pip install -e . -v
 ```
 
-Without the compiler option, the setup.py script tries to detect how we compiled fftw library by compiling some auto-generated c program and linking with a proper library. This fails because of the default -Wimplicit-function-declaration compiler option. On apple, gcc is linked to clang, which prohibits compiling without function declarations. There may be some missing header files resulting in the problem, but the above compiler option seems to solve the problem. I did not dig further into this.
+If you want to use pthreads instead of openmp, do
 
-Note that in recent versions of pyfftw, the setup script discoveres whether we compiled with openmp or not. It should take the openmp version of the installed fftw library by default.
+```console
+$ export PYFFTW_USE_PTHREADS=1
+$ pip install -e . -v
+```
 
-## Benchmarks
+## pyFFTW benchmarks
 
-On miniconda python distribution with python 3.10 running natively on Mac Mini (2020 M1 8GB):
+On miniconda python distribution with python 3.14 running natively on Mac Mini (2020 M1 8GB):
 
 ```console
 $ ipython
