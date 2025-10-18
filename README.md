@@ -332,7 +332,7 @@ Ok let us test the current version of libomp (21.1.3 as of October 2025) we get:
 brew install libomp
 export CPPFLAGS="-I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp"
 export LDFLAGS="-L/opt/homebrew/opt/libomp/lib -lomp"
-./configure --enable-armv8-cntvct-el0 --host=aarch64 --enable-neon --enable-openmp --enable-float
+./configure --enable-armv8-cntvct-el0 --enable-neon --enable-openmp --enable-float
 make clean
 make
 tests/bench -opatient -onthreads=8 c512x512
