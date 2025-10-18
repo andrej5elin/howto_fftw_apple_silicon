@@ -181,12 +181,10 @@ PYFFTW_USE_PTHREADS=1 pip install -e . -v
 
 ## pyFFTW benchmarks
 
-On miniconda python distribution with python 3.14 running natively on Mac Mini (2020 M1 8GB):
-
 ```sh
+conda activate fftw3
 ipython
 ```
-
 First, I set the OMP_NUM_THREADS environment variable, otherwise pyfftw takes all available cores for planning. We do not want our code to be running on
 efficiency cores when performing plans or later, when computing. Setting this variable to the number of performance cores does the trick. 
 
@@ -223,7 +221,7 @@ timeit tests reveal identical performance as test/bench:
 >>> timeit r512x512_8(r)
 45.4 μs ± 686 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)
 ```
-Nice, but was it worth it? What if we just install the best option conda can provide. We make a test environment. I thought installing accelerate may accelerate things
+Nice, but was it worth it? What if we just install the best option conda can provide. I thought installing accelerate may accelerate things (but it doesn't)
 ```sh
 conda create --name accelerate
 conda activate accelerate
@@ -249,9 +247,9 @@ ipython
 >>> timeit sp.fft.rfft2(r, workers = 8, overwrite_x = True)
 106 μs ± 560 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)
 ```
-Ok, so the real transforms are actually quite good in scipy, but complex transforms are more than two times slower in scipy. Also, here the comparison is not completeley fair because we use overwrite_x = True which implies an in-place transform, whereas in pyfftw we used out-of-place transform, so fftw could be even faster.
+Ok, so the real transforms are actually quite good in scipy, but complex transforms are more than two times slower in scipy. Also, here the comparison is not completeley fair because we use overwrite_x = True which implies an in-place transform, whereas in pyfftw we used out-of-place transform. In-place transforms in pyfftw are actually slightly slower.
 
-Does it matter? Not really.. Just use scipy when developing code. If at the end you really need to increase FFT computation speed, then you can try fftw. However, to really benefit anything, you really need to apply all tricks explained here...
+So, was it worth all the trouble? Probably not... Just use scipy when developing code. If at the end you really need to increase FFT computation speed, then you have another option to try. However, to really benefit anything, you need to apply all the tricks explained here...
 
 ### Finding optimal fftw configuration
 
@@ -324,6 +322,8 @@ Problem: r512x512, setup: 590.10 ms, time: 335.38 us, ``mflops'': 35173.999
 ```
 and we see a slight imrovement. The results are consistent with the single precision results, being about 2x slower than single precision tests. Have all possible optimization been applied? I am not an expert and I don't know. NEON is 128bit, so working with double precision and complex transform already consumes 128bit, so we cannot expect much improvement in double precision... 
 
+Later I found that I cannot create shared libraries if using --host=aarch64, that is why I patched the config. I am sure this couls be resolved with some special compile arguments, but I just did not find a better solution other than patching.
+
 ### The openmp thread utilization issue
 
 Ok let us test the current version of libomp (21.1.3 as of October 2025) we get:
@@ -348,7 +348,6 @@ OMP_WAIT_POLICY=ACTIVE tests/bench -opatient -onthreads=8 c512x512
 Problem: c512x512, setup: 3.91 s, time: 74.95 us, ``mflops'': 314802.34
 ```
 When observing thread utilization using OMP_WAIT_POLICY=PASSIVE (default value) using apple's activity monitor, I can see poor utilization, and almost half of the processing time appears to be wasted for some reason, so it makes sense that computation time using OMP_WAIT_POLICY=PASSIVE is almost two times longer compared to OMP_WAIT_POLICY=ACTIVE. Using version libomop 14.0.6 and prior to this version give a similar result with both OMP_WAIT_POLICY=PASSIVE and OMP_WAIT_POLICY=ACTIVE. I cannot use active omp wait policy because I am using python and pyfftw. Using OMP_WAIT_POLICY=ACTIVE inside python just spins all cores at 100%, making the environment useless. Therefore, I choose libomop 14.0.6 for my work...
-
 
 
 
