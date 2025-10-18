@@ -1,0 +1,11 @@
+--- setup_original.py	2024-11-06 06:37:58
++++ setup_patched.py	2025-10-17 11:41:58
+@@ -522,7 +522,7 @@
+     def openmp_linker_flag(self):
+         # gcc and newer clang support openmp
+         if self.compiler.compiler_type == 'unix':
+-            return '-fopenmp'
++            return '-lomp'
+         # TODO support other compilers
+         else:
+             return ''
