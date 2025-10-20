@@ -75,8 +75,8 @@ Note that when running the computation on 8 cores on M1 it activates efficiency 
 Installing with openmp should speed up multi-threaded calculation. Compiling with apple's clang is possible, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ Ideally, we should be able to first install libomp using brew using:
 ```sh
 brew install libomp
-export CPPFLAGS="-I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp"
-export LDFLAGS="-L/opt/homebrew/opt/libomp/lib -lomp"
+export CPPFLAGS="-I$(brew --prefix libomp)/include -Xpreprocessor -fopenmp"
+export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
 ```
 Although this approach worked back in 2020 when the first M1 came out, today the version shipped with brew does not work optimally on any of the apple silicon computers I own (M1 and M4 Pro). Scroll down to **the openmp issue** to learn about this. If you want the best threading performance you must install the version from the 2020/2021 era. I found that the last version that we can find in brew, which gives good results is 14.0.6, while from version 15 onwards, I see performance decrease on M1 and M4 pro. I followed https://blog.sandipb.net/2021/09/02/installing-a-specific-version-of-a-homebrew-formula/ There may be other ways, but I have settled with the following recipe:
 ```sh
@@ -84,8 +84,8 @@ brew tap-new $USER/libomp
 brew tap homebrew/core --force
 brew extract --version=14.0.6 libomp $USER/libomp
 HOMEBREW_NO_AUTO_UPDATE=1 brew install $USER/libomp/libomp@14.0.6
-export CPPFLAGS="-I/opt/homebrew/opt/libomp@14.0.6/include -Xpreprocessor -fopenmp"
-export LDFLAGS="-L/opt/homebrew/opt/libomp@14.0.6/lib -lomp"
+export CPPFLAGS="-I$(brew --prefix libomp@14.0.6)/include -Xpreprocessor -fopenmp"
+export LDFLAGS="-L$(brew --prefix libomp@14.0.6)/lib -lomp"
 ```
 Now we are able to compile with the old libomp version. I found it easier to compile pyfftw with shared fftw library, so we use *enable-shared* option:
 ```sh
@@ -325,8 +325,8 @@ Ok let us test the current version of libomp (21.1.3 as of October 2025) we get:
 
 ```sh
 brew install libomp
-export CPPFLAGS="-I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp"
-export LDFLAGS="-L/opt/homebrew/opt/libomp/lib -lomp"
+export CPPFLAGS="-I$(brew --prefix libomp)/include -Xpreprocessor -fopenmp"
+export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
 ./configure --enable-armv8-cntvct-el0 --enable-neon --enable-openmp --enable-float
 make clean
 make
