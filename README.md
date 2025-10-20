@@ -151,7 +151,7 @@ conda activate fftw
 conda install cython llvm-openmp numpy scipy ipython 
 ```
 
-If you start with a fresh console, there will be no LDFLAGS and CPPFLAGS set... but I assume we still have these from previous compiles, so unset these. We will use openmp runtime libs that comes from conda instead of brew. 
+If you start with a fresh console, there will be no LDFLAGS and CPPFLAGS set... but I assume we still have these from previous compiles, so unset these. We will use openmp runtime libs installed by conda instead of brew. 
 
 ```sh
 unset LDFLAGS
