@@ -6,14 +6,14 @@ Tested on **M1** (2020 Mac mini with 8-core CPU) and **M4 Pro** (2024 Macbook Pr
 
 ## Installing FFTW 
 
-Download FFTW source code (tested using version 3.3.10). If you want to apply NEON optimization for doubple precision, you must copy fftw-3-3-10-configure-diff.txt file from this repository to fftw source directory and patch:
+Download FFTW source code (tested using version 3.3.10). If you want to apply NEON optimization for double precision, you must copy fftw-3-3-10-configure-diff.txt file from this repository to fftw source directory and patch:
 
 ```sh
 curl -L https://www.fftw.org/fftw-3.3.10.tar.gz | tar xvf -
 cd fftw-3.3.10
 curl -LO https://raw.githubusercontent.com/andrej5elin/howto_fftw_apple_silicon/refs/heads/main/fftw-3-3-10-configure-diff.txt | patch configure -
 ```
-LAter I found that it is possible to compile without patching. Scroll down to section **Finding optimal compilation settings** for details. 
+Later I found that it is possible to compile without patching. Scroll down to section **Finding optimal compilation settings** for details.  
 
 ### Using pthreads
 Note that we also compile long double (we need that for pyffftw)
