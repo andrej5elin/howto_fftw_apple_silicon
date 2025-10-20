@@ -1,6 +1,6 @@
 # howto_fftw_apple_silicon
 
-These are instructions how to install fftw and pyfftw on apple silicon computers. Note that it is possible to install fftw with brew. It is also posible to pip install pyfftw. But, if you want to get the best performance, fftw has to be compiled with SIMD instruction sets and, more importantly, using --enable-armv8-cntvct-el0 option, which the packages shipped with brew and pip are not (as of today - October 2025). 
+These are instructions how to install fftw and pyfftw on apple silicon computers. Note that it is possible to install fftw with brew. It is also possible to pip install pyfftw. But, if you want to get the best performance, fftw has to be compiled with SIMD instruction sets and, more importantly, using --enable-armv8-cntvct-el0 option, which the packages shipped with brew and pip are not (as of today - October 2025). 
 
 Tested on **M1** (2020 Mac mini with 8-core CPU) and **M4 Pro** (2024 Macbook Pro with 14‑core CPU).
 
@@ -72,7 +72,7 @@ Problem: r512x512, setup: 17.07 s, time: 151.23 us, ``mflops'': 78005.344
 Note that when running the computation on 8 cores on M1 it activates efficiency cores. 
 
 ## Installing FFTW with openmp
-Installing with openmp should speed up multi-threaded calculation. Compiling with apple's clang is possbile, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ Ideally, we should be able to first install libomp using brew using:
+Installing with openmp should speed up multi-threaded calculation. Compiling with apple's clang is possible, see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/ Ideally, we should be able to first install libomp using brew using:
 ```sh
 brew install libomp
 export CPPFLAGS="-I/opt/homebrew/opt/libomp/include -Xpreprocessor -fopenmp"
@@ -195,7 +195,7 @@ efficiency cores while performing plans. Setting this variable to the number of 
 >>> import os
 >>> os.environ["OMP_NUM_THREADS"] = "10"
 ```
-It is important that the enviroment variable is set prior to importing pyfftw. Now we can plan the transforms:
+It is important that the environment variable is set prior to importing pyfftw. Now we can plan the transforms:
 ```python
 >>> import pyfftw
 >>> import numpy as np
@@ -342,7 +342,7 @@ OMP_WAIT_POLICY=ACTIVE tests/bench -opatient -onthreads=8 c512x512
 ```console
 Problem: c512x512, setup: 3.91 s, time: 74.95 us, ``mflops'': 314802.34
 ```
-When observing thread utilization using OMP_WAIT_POLICY=PASSIVE (default value) using apple's activity monitor, I can see poor utilization, and almost half of the processing time appears to be wasted for some reason, so it makes sense that computation time using OMP_WAIT_POLICY=PASSIVE is almost two times longer compared to OMP_WAIT_POLICY=ACTIVE. Using version libomop 14.0.6 and prior to this version give a similar result with both OMP_WAIT_POLICY=PASSIVE and OMP_WAIT_POLICY=ACTIVE. I cannot use active omp wait policy because I am using python and pyfftw. Using OMP_WAIT_POLICY=ACTIVE inside python just spins all cores at 100%, making the environment useless. Therefore, I choose libomop 14.0.6 for my work...
+When observing thread utilization using with apple's activity monitor, I can see poor utilization when OMP_WAIT_POLICY=PASSIVE (default value), and almost half of the processing time appears to be wasted for some reason, so it makes sense that computation time is almost two times longer compared to OMP_WAIT_POLICY=ACTIVE. Using version libomop 14.0.6 (and prior to this version) gives a similar result with both OMP_WAIT_POLICY=PASSIVE and OMP_WAIT_POLICY=ACTIVE. I cannot use active omp wait policy because I am using python and pyfftw. Using OMP_WAIT_POLICY=ACTIVE inside python just spins all cores at 100%, making the environment useless. Therefore, I choose libomop 14.0.6 for my work...
 
 
 
