@@ -1,22 +1,22 @@
 # howto_fftw_apple_silicon
 
-This is a how to install fftw and pyfftw on apple silicon computers. Note that it is possible to install fftw with brew. It is also posible to pip install pyfftw, but, if you want to get the best performance, fftw has to be compiled with SIMD instruction sets and, more importantly, using --enable-armv8-cntvct-el0 option, which the packages shipped with brew and pip are not (as of today - October 2025). 
+These are instructions how to install fftw and pyfftw on apple silicon computers. Note that it is possible to install fftw with brew. It is also posible to pip install pyfftw. But, if you want to get the best performance, fftw has to be compiled with SIMD instruction sets and, more importantly, using --enable-armv8-cntvct-el0 option, which the packages shipped with brew and pip are not (as of today - October 2025). 
 
-tested on **M1** (2020 Mac mini with 8-core CPU) and **M4 Pro** (2024 Macbook Pro with 14‑core CPU)
+Tested on **M1** (2020 Mac mini with 8-core CPU) and **M4 Pro** (2024 Macbook Pro with 14‑core CPU).
 
 ## Installing FFTW 
 
-Download FFTW source code (tested using version 3.3.10).  If you want to apply NEON optimization for doubple precision, you must copy fftw-3-3-10-configure-diff.txt file from this repository to fftw source directory and patch:
+Download FFTW source code (tested using version 3.3.10). If you want to apply NEON optimization for doubple precision, you must copy fftw-3-3-10-configure-diff.txt file from this repository to fftw source directory and patch:
 
 ```sh
 curl -L https://www.fftw.org/fftw-3.3.10.tar.gz | tar xvf -
 cd fftw-3.3.10
 curl -LO https://raw.githubusercontent.com/andrej5elin/howto_fftw_apple_silicon/refs/heads/main/fftw-3-3-10-configure-diff.txt | patch configure -
 ```
-I did not find a better way of doing it. Scroll down to section **Finding optimal compialtion settings** for details. 
+I did not find a better way other than patching. Scroll down to section **Finding optimal compilation settings** for details. 
 
 ### Using pthreads
-Note that we install also long double (we need that for pyffftw)
+Note that we also compile long double (we need that for pyffftw)
 ```sh
 ./configure --enable-armv8-cntvct-el0 --enable-threads --enable-long-double 
 make clean
@@ -31,7 +31,7 @@ make clean
 make
 sudo make install
 ```
-We test 2D FFT (complex and real) using 1, 4 and 8 threads with patient planning. 
+Below we test 2D FFT (complex and real) using 1, 4 and 8 threads with patient planning on M4 pro and M1. 
 
 #### M4 Pro threads benchmarks (single precision)
 ```sh
@@ -50,10 +50,9 @@ Problem: r512x512, setup: 483.02 ms, time: 214.41 us, ``mflops'': 55019.292
 Problem: r512x512, setup: 3.12 s, time: 88.27 us, ``mflops'': 133635.67
 Problem: r512x512, setup: 4.45 s, time: 105.38 us, ``mflops'': 111939.32
 ```
-So, threading works, but it is not efficient for the given problem size (512x512). No significant improvement beyond -onthreads=4, even though we have 10 performance cores.
+So, the threading works, but it is not efficient for the given problem size (512x512). No significant improvement beyond -onthreads=4, even though we have 10 performance cores.
 
 #### M1 threads benchmarks (single precision)
-Repeat the same tests on M1
 ```sh
 tests/bench -opatient -onthreads=1 c512x512
 tests/bench -opatient -onthreads=4 c512x512
@@ -152,15 +151,13 @@ conda activate fftw
 conda install cython llvm-openmp numpy scipy ipython 
 ```
 
-If you start with a fresh console, there will be no LDFLAGS and CPPFLAGS set... but I assume we still have these from previous compiles, so unset these. We will use dylib that comes from conda instead of brew. 
+If you start with a fresh console, there will be no LDFLAGS and CPPFLAGS set... but I assume we still have these from previous compiles, so unset these. We will use openmp runtime libs that comes from conda instead of brew. 
 
 ```sh
 unset LDFLAGS
 unset CPPFLAGS
 ```
-
-Next, download and extract pyfftw (version 0.15.0), apply the patch
-
+Next, download and extract pyfftw (version 0.15.0) and apply the patch and install
 ```sh
 curl -L https://github.com/pyFFTW/pyFFTW/archive/refs/tags/v0.15.0.tar.gz | tar xvf -
 cd pyFFTW-0.15.0
@@ -191,8 +188,8 @@ PYFFTW_USE_PTHREADS=1 pip install -e . -v
 ```sh
 ipython
 ```
-First, I set the OMP_NUM_THREADS environment variable, otherwise pyfftw takes all available cores for planning. We do not want our code to be running on
-efficiency cores when performing plans or later, when computing. Setting this variable to the number of performance cores does the trick. 
+First, we must set the OMP_NUM_THREADS environment variable, otherwise pyfftw takes all available cores for planning. We do not want our code to be running on
+efficiency cores while performing plans. Setting this variable to the number of performance cores does the trick. 
 
 ```python
 >>> import os
@@ -247,9 +244,7 @@ Nice, but was it worth it? What if we just use whatever conda gives in scipy
 >>> timeit sp.fft.rfft2(r, workers = 8, overwrite_x = True)
 106 μs ± 560 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)
 ```
-Ok, so the real transforms are actually quite good in scipy, but complex transforms are more than two times slower in scipy. Also, here the comparison is not completeley fair because we use overwrite_x = True which implies an in-place transform, whereas in pyfftw we used out-of-place transform. In-place transforms in pyfftw are actually slightly slower.
-
-So, was it worth all the trouble? Probably not... Just use scipy when developing code. If at the end you really need to increase FFT computation speed, then you have another option to try. However, to really benefit anything, you need to apply all the tricks explained here...
+Ok, so the real transforms are actually quite good in scipy, but complex transforms are more than two times slower in scipy. Also, here the comparison is not fair because we use overwrite_x = True which implies an in-place transform, whereas in pyfftw we used out-of-place transform. In-place transforms in pyfftw are actually slightly slower. If you really need to increase FFT computation speed in python, then a factor 2x speedup (compared to scipy) is possible using pyfftw. However, to really benefit anything, you need to apply all the tricks explained here.
 
 ### Finding optimal fftw configuration
 
