@@ -13,7 +13,7 @@ curl -L https://www.fftw.org/fftw-3.3.10.tar.gz | tar xvf -
 cd fftw-3.3.10
 curl -LO https://raw.githubusercontent.com/andrej5elin/howto_fftw_apple_silicon/refs/heads/main/fftw-3-3-10-configure-diff.txt | patch configure -
 ```
-I did not find a better way other than patching. Scroll down to section **Finding optimal compilation settings** for details. 
+LAter I found that it is possible to compile without patching. Scroll down to section **Finding optimal compilation settings** for details. 
 
 ### Using pthreads
 Note that we also compile long double (we need that for pyffftw)
@@ -303,9 +303,9 @@ tests/bench -opatient r512x512
 Problem: c512x512, setup: 1.08 s, time: 381.50 us, ``mflops'': 61842.621
 Problem: r512x512, setup: 501.09 ms, time: 212.67 us, ``mflops'': 55467.983
 ```
-Ok, this appears to be fine now. We can also enable neon to double precison, however, we must hint fftw that we are on aarch64, otherwise it complains. Soo we add --host=aarch64
+Ok, this appears to be fine now. We can also enable neon to double precison, however, we must hint fftw that we are on aarch64, otherwise it complains. Soo we add --host=aarch64-apple-darwin
 ```sh
-./configure --enable-armv8-cntvct-el0 --enable-neon --host=aarch64
+./configure --enable-armv8-cntvct-el0 --enable-neon --host=aarch64-apple-darwin
 make clean
 make
 tests/bench -opatient c512x512
@@ -315,9 +315,7 @@ tests/bench -opatient r512x512
 Problem: c512x512, setup: 1.61 s, time: 779.44 us, ``mflops'': 30269.213
 Problem: r512x512, setup: 590.10 ms, time: 335.38 us, ``mflops'': 35173.999
 ```
-and we see a slight imrovement. The results are consistent with the single precision results, being about 2x slower than single precision tests. Have all possible optimization been applied? I am not an expert and I don't know. NEON is 128bit, so working with double precision and complex transform already consumes 128bit, so we cannot expect much improvement in double precision... 
-
-Later I found that I cannot create shared libraries if using --host=aarch64, that is why I patched the config. I am sure this couls be resolved with some special compile arguments, but I just did not find a better solution other than patching.
+and we see a slight improvement. The results are consistent with the single precision results, being about 2x slower than single precision tests. Have all possible optimization been applied? I am not an expert and I don't know. NEON is 128bit, so working with double precision and complex transform already consumes 128bit, so we cannot expect much improvement in double precision... 
 
 ### The openmp thread utilization issue
 
