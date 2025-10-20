@@ -333,7 +333,7 @@ tests/bench -opatient -onthreads=8 c512x512
 ```console
 Problem: c512x512, setup: 10.20 s, time: 136.80 us, ``mflops'': 172457.25
 ```
-What? This is worse than pthreads. Repeating the tests with OMP_WAIT_POLICY=ACTIVE reveals the problem
+What? This is worse than pthreads. Repeating the tests with OMP_WAIT_POLICY=ACTIVE we get
 ```sh
 OMP_WAIT_POLICY=ACTIVE tests/bench -opatient -onthreads=8 c512x512
 ```
